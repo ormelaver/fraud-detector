@@ -1,3 +1,10 @@
+TODD: 
+(for the abnormal amount rule)
+add commonUsageTimes to Card model.
+write a service that runs every hour and fills Redis with relevant card data according to commonUsageTimes.
+If there a cache miss - query mongo.
+
+
 Kafka producer as Singleton - to ensure only one connection and one producer per topic.
 -------------
 Decided not to use user id as keys when producing a message because we will have millions of users.
@@ -11,12 +18,16 @@ The use of Redis - to allow checking of the current TA vs recent ones (For the "
 Redis client as Singleton
 -------------
 For the "more than X transactions in Y time" rule, 4 options were considered:
-- Considered a service that will remove transactions from Redis every Y minutes and when a transaction occurs, just check the number of TAs for that user.
-- There's also the option of retrieving all of the user's transactions, look at their timestamps, and count those in the last Y minutes.
-- Using Redis sorted sets and use the timestamp as the score. Count TAs with Redis' 'ZCOUNT'. Requires a separate cleanup service. Also, the "sorted" doesn't help so much because we don't care about the order, just the number of TAs. On the other hand, it minimizes data transfer as you're only counting items within a range rather than retrieving them.
-- Use Redis' TTL feature and save 2 data stores. One (simple key-value) with a counter for the user's transaction in the last Y minutes (user:{uid}:counter) and one list for the user's transactions. when a transaction occurs: increment the counter, store the transaction, and reset both keys' TTL. Then only check the counter and if it's larger than X - flag all of the stored TAs and send them to the 'Flagged' queue.
+1. Considered a service that will remove transactions from Redis every Y minutes and when a transaction occurs, just check the number of TAs for that user.
+2. There's also the option of retrieving all of the user's transactions, look at their timestamps, and count those in the last Y minutes.
+3. Using Redis sorted sets and use the timestamp as the score. Count TAs with Redis' 'ZCOUNT'. Requires a separate cleanup service. Also, the "sorted" doesn't help so much because we don't care about the order, just the number of TAs. On the other hand, it minimizes data transfer as you're only counting items within a range rather than retrieving them.
+4. Use Redis' TTL feature and save 2 data stores. One (simple key-value) with a counter for the user's transaction in the last Y minutes (user:{uid}:counter) and one list for the user's transactions. when a transaction occurs: increment the counter, store the transaction, and reset both keys' TTL. Then only check the counter and if it's larger than X - flag all of the stored TAs and send them to the 'Flagged' queue.
 
 The 4th option was chosen as this doesn't require a separate cleanup service and also only checking the counter is more efficient than retrieving the whole list/part of it. checking the counter also ensures minimal data transfer between Redis and the app.
+------------
+How do I efficiently check an abnormal transaction amount? The current transacion amount needs to be compared to the card's average amount. This means that when I get a transaction, I need to access the corresponding card document in Mongo.
+The options that were considered: 
+1. Load relevant card data to Redis upon getting the request.
 ------------
 Decided to create a class/processor for each rule. To enforce the existence of process() and sendToAlertQueue(), created an abstract class. Why do this:
 1. This allows the easy addition of new rules in the future - just create a new class.

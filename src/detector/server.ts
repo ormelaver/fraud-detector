@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 
 import { app } from './app';
 import { initConsumers } from './consumers/initConsumers';
-import { RedisClient } from './services/redis';
+import { RedisClient } from './services/redisClient';
 
 const PORT = process.env.PORT;
 

@@ -76,7 +76,6 @@ export class KafkaConsumer {
     } catch (error) {
       throw error;
     }
-    // LATER: maybe switch to eachBatch
   }
 
   public async shutdown(): Promise<void> {

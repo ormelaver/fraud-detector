@@ -1,44 +1,5 @@
 import { Kafka, Message } from 'kafkajs';
 
-// export class KafkaWrapper {
-//   // public kafkaClient: Kafka;
-//   kafkaClient = new Kafka({
-//     clientId: 'my-app',
-//     brokers: ['localhost:9092'],
-//   });
-
-//   producer = this.kafkaClient.producer();
-//   public async connectProducer() {
-//     const producer = this.kafkaClient.producer();
-
-//     await producer.connect();
-//   }
-
-// public async sendMessages() {
-//   await this.producer.send({
-//     topic: 'test',
-//     messages: [{ value: 'Hello KafkaJS user!' }],
-//   });
-
-//   await producer.disconnect();
-// }
-
-//   public async connectConsumer() {
-//     const consumer = this.kafkaClient.consumer({ groupId: 'test-group' });
-
-//     await consumer.connect();
-//     await consumer.subscribe({ topic: 'test', fromBeginning: true });
-
-//     await consumer.run({
-//       eachMessage: async ({ topic, partition, message }) => {
-//         console.log({
-//           value: message.value!.toString(),
-//         });
-//       },
-//     });
-//   }
-// }
-
 export class KafkaProducer {
   private static instances: { [topic: string]: KafkaProducer } = {};
   private producer; // Replace with the actual Kafka producer type

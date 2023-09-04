@@ -1,11 +1,10 @@
-import { RedisClientType } from '@redis/client';
 import { createClient } from 'redis';
 
 // TODO: add error handler to reconnect if connection is lost
 // Use connection pool?
 
 // create an enum for possible keys
-// gracefully close connection when the app crashes (also for Kafka)
+
 export class RedisClient {
   private static instance: RedisClient;
   private _client: any;
@@ -66,6 +65,7 @@ export class RedisClient {
     }
     console.log(`key ${key} set with value ${value}`);
   }
+
   public async addListElement(key: string, element: any, ttlSeconds?: number) {
     try {
       const transactionString = JSON.stringify(element);
@@ -82,8 +82,6 @@ export class RedisClient {
 
   public async getList(key: any, fromIndex: number, toIndex: number) {
     const list = await this._client.lRange(key, fromIndex, toIndex);
-    console.log('getList ', list);
-    console.log(typeof list);
     return list;
   }
 

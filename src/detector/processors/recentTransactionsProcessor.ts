@@ -1,4 +1,4 @@
-import { RedisClient } from '../services/redis';
+import { RedisClient } from '../services/redisClient';
 import { BaseProcessor } from '../shared/baseProcessor';
 const MAX_TRANSACTIONS_PER_INTERVAL = 2;
 const RECENT_TRANSACTIONS_INTERVAL_SECONDS = 120;
@@ -10,11 +10,6 @@ const RECENT_TRANSACTIONS_INTERVAL_SECONDS = 120;
 class RecentTransactionsProcessor extends BaseProcessor {
   private redis = RedisClient.getInstance();
 
-  // constructor() {
-  //   super();
-  //   // this.redis = RedisClient.getInstance();
-  // }
-
   public async process(transaction: any) {
     await this.redis.connect();
     const cid = this.extractCid(transaction);
@@ -25,7 +20,7 @@ class RecentTransactionsProcessor extends BaseProcessor {
 
   private async checkRecentTransactions(cid: number) {
     const recentTransactionsNumber = await this.redis.getValue(
-      `user:${cid}:counter`
+      `card:${cid}:counter`
     );
 
     if (
@@ -34,13 +29,9 @@ class RecentTransactionsProcessor extends BaseProcessor {
     ) {
       console.log(`Transaction for user ${cid} is FLAGGED`);
       const recentTransactions = await this.redis.getList(
-        `user:${cid}:transactions`,
+        `card:${cid}:transactions`,
         0,
         -1
-      );
-      console.log(
-        'recent tAS ' +
-          JSON.stringify(JSON.parse(recentTransactions[0]).message.value)
       );
       let values: any = [];
       recentTransactions.forEach((transaction: any) => {
@@ -50,18 +41,18 @@ class RecentTransactionsProcessor extends BaseProcessor {
       this.sendToAlertTopic(values, 'MAX_TRANSACTIONS_PER_INTERVAL_EXCEEDED');
       //TODO: publish to 'flagged' queue (only current TA or all of them?)
     } else {
-      console.log(`Transaction for user ${cid} is VALID`);
+      console.log(`Transaction for card ${cid} is VALID`);
     }
   }
 
   private async addTransactionToCache(cid: number, transaction: any) {
-    await this.redis.incrementCounter(`user:${cid}:counter`);
+    await this.redis.incrementCounter(`card:${cid}:counter`);
     await this.redis.setExpiration(
-      `user:${cid}:counter`,
+      `card:${cid}:counter`,
       RECENT_TRANSACTIONS_INTERVAL_SECONDS
     );
     const reply = await this.redis.addListElement(
-      `user:${cid}:transactions`,
+      `card:${cid}:transactions`,
       transaction,
       RECENT_TRANSACTIONS_INTERVAL_SECONDS
     );

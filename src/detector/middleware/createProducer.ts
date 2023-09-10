@@ -6,7 +6,7 @@ export const createProducerMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
-  const defaultTopic = 'transactions'; // Replace with your default topic
+  const defaultTopic = 'transactions';
 
   if (!req.kafkaProducer) {
     req.kafkaProducer = KafkaProducer.getInstance(defaultTopic);

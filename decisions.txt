@@ -1,13 +1,9 @@
 TODD: 
-(for the abnormal amount rule)
-add commonUsageTimes to Card model.
-write a service that runs every hour and fills Redis with relevant card data according to commonUsageTimes.
-If there a cache miss - query mongo.
 
 
 Kafka producer as Singleton - to ensure only one connection and one producer per topic.
 -------------
-Decided not to use user id as keys when producing a message because we will have millions of users.
+Decided not to use card id as keys when producing a message because we will have millions of cards.
 -------------
 Why I chose NoSQL:
 Because the structure of the data may be changed by credit providers.
@@ -18,10 +14,10 @@ The use of Redis - to allow checking of the current TA vs recent ones (For the "
 Redis client as Singleton
 -------------
 For the "more than X transactions in Y time" rule, 4 options were considered:
-1. Considered a service that will remove transactions from Redis every Y minutes and when a transaction occurs, just check the number of TAs for that user.
-2. There's also the option of retrieving all of the user's transactions, look at their timestamps, and count those in the last Y minutes.
+1. Considered a service that will remove transactions from Redis every Y minutes and when a transaction occurs, just check the number of TAs for that card.
+2. There's also the option of retrieving all of the card's transactions, look at their timestamps, and count those in the last Y minutes.
 3. Using Redis sorted sets and use the timestamp as the score. Count TAs with Redis' 'ZCOUNT'. Requires a separate cleanup service. Also, the "sorted" doesn't help so much because we don't care about the order, just the number of TAs. On the other hand, it minimizes data transfer as you're only counting items within a range rather than retrieving them.
-4. Use Redis' TTL feature and save 2 data stores. One (simple key-value) with a counter for the user's transaction in the last Y minutes (user:{uid}:counter) and one list for the user's transactions. when a transaction occurs: increment the counter, store the transaction, and reset both keys' TTL. Then only check the counter and if it's larger than X - flag all of the stored TAs and send them to the 'Flagged' queue.
+4. Use Redis' TTL feature and save 2 data stores. One (simple key-value) with a counter for the card's transaction in the last Y minutes (card:{uid}:counter) and one list for the card's transactions. when a transaction occurs: increment the counter, store the transaction, and reset both keys' TTL. Then only check the counter and if it's larger than X - flag all of the stored TAs and send them to the 'Flagged' queue.
 
 The 4th option was chosen as this doesn't require a separate cleanup service and also only checking the counter is more efficient than retrieving the whole list/part of it. checking the counter also ensures minimal data transfer between Redis and the app.
 ------------
@@ -36,13 +32,22 @@ Decided to create a class/processor for each rule. To enforce the existence of p
 4. Operating in parallel enhances performance. Also, when the number of rules grow, makes it easier to keep track of processing times and bottle necks.
 5. Easier to test - each rule is tested in isolation.
 ------------
-Decided to use 2 processors - Users and Transaction because (as opposed to one that will hold users and their TAs as an large object):
-1. Saves an I/O operation of getting the relevant user when inserting each transaction.
-2. When updating the user object (average transacton amount for example), saves the need to load the transaction object to Mongo's memory.
-3. Separation of concerns.
-4. Better scalability - if TA processing becomes a bottleneck, we can easily scale it without needlessly scale the user processor.
+Decided to use 2 processors - Cards and Transaction because (as opposed to one that will hold cards and their TAs as an large object):
+1. Separation of concerns.
+2. Better scalability - if TA processing becomes a bottleneck, we can easily scale it without needlessly scale the card processor.
+3. Error Handling: If there's an error or exception in processing transactions, it won't affect the processing of card data and vice versa.
 ------------
-Decided to use 2 collections - Users and Transaction because (as opposed to one that will hold users and their TAs as an large object):
-1. Saves an I/O operation of getting the relevant user when inserting each transaction.
-2. When updating the user object (average transacton amount for example), saves the need to load the transaction object to Mongo's memory.
+Decided to use 2 collections - cards and Transaction because (as opposed to one that will hold cards and their TAs as an large object):
+1. Saves an I/O operation of getting the relevant card when inserting each transaction.
+2. When updating the card object (average transacton amount for example), saves the need to load the transaction object to Mongo's memory.
 3. Avoids the need to handle nested objects.
+------------
+Decided to implement the redis populator as a separate service, independent of the main server. Bacause:
+1. Decoupling: error and maintenance isolation - separates the concerns. The server doesn't have to worry about the task of populating Redis, only detect fraud. 
+2. Error isolation - if there's an error in one of them, it won't affect the other and makes it easier to debug.
+3. Maintenance - Also makes it easier to upgrade both.
+4. Scalability - in the futue if I need to scale the populator, makes it easier as it won't affect the main server.
+5. Flexibility - if in the future I'll decide to change the populator's strategy, will make it easier.
+The main con for the separation is if I had a lot of communication between the two. But since there is none, it's not relevant.
+The second con is for that it adds another service to monitor, deploy, and maintain.
+

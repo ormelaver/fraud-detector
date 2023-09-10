@@ -19,29 +19,36 @@ class RecentTransactionsProcessor extends BaseProcessor {
   }
 
   private async checkRecentTransactions(cid: number) {
-    const recentTransactionsNumber = await this.redis.getValue(
-      `card:${cid}:counter`
-    );
-
-    if (
-      parseInt(recentTransactionsNumber) + 1 >
-      MAX_TRANSACTIONS_PER_INTERVAL
-    ) {
-      console.log(`Transaction for user ${cid} is FLAGGED`);
-      const recentTransactions = await this.redis.getList(
-        `card:${cid}:transactions`,
-        0,
-        -1
+    try {
+      const recentTransactionsNumber = await this.redis.getValue(
+        `card:${cid}:counter`
       );
-      let values: any = [];
-      recentTransactions.forEach((transaction: any) => {
-        let strValue = JSON.parse(transaction).message.value;
-        values.push(JSON.parse(strValue));
-      });
-      this.sendToAlertTopic(values, 'MAX_TRANSACTIONS_PER_INTERVAL_EXCEEDED');
-      //TODO: publish to 'flagged' queue (only current TA or all of them?)
-    } else {
-      console.log(`Transaction for card ${cid} is VALID`);
+
+      if (
+        parseInt(recentTransactionsNumber) + 1 >
+        MAX_TRANSACTIONS_PER_INTERVAL
+      ) {
+        console.log(`Transaction for user ${cid} is FLAGGED`);
+        const recentTransactions = await this.redis.getList(
+          `card:${cid}:transactions`,
+          0,
+          -1
+        );
+        let values: any = [];
+        recentTransactions.forEach((transaction: any) => {
+          let strValue = JSON.parse(transaction).message.value;
+          values.push(JSON.parse(strValue));
+        });
+        const alert = {
+          transaction: values,
+          alertType: 'MAX_TRANSACTIONS_PER_INTERVAL_EXCEEDED',
+        };
+        await this.sendToAlertTopic(alert);
+      } else {
+        console.log(`Transaction for card ${cid} is VALID`);
+      }
+    } catch (error) {
+      throw error;
     }
   }
 

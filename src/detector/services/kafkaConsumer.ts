@@ -9,8 +9,9 @@ import {
 export class KafkaConsumer {
   private consumer: Consumer;
   private messageProcessor;
+  private batchSize: number;
 
-  constructor(messageProcessor: any, groupId: string) {
+  constructor(messageProcessor: any, groupId: string, batchSize: number = 1) {
     //TODO: allow more configuration (i.e set partitionsConsumedConcurrently)
     const kafka = new Kafka({
       clientId: 'my-app',
@@ -24,6 +25,7 @@ export class KafkaConsumer {
       // maxBytes: 1000,
       // minBytes: 10,
     });
+    this.batchSize = batchSize;
     this.messageProcessor = messageProcessor;
   }
 
@@ -54,21 +56,32 @@ export class KafkaConsumer {
           isStale,
           pause,
         }) => {
-          for (let message of batch.messages) {
-            await this.messageProcessor.process({
-              topic: batch.topic,
-              partition: batch.partition,
-              highWatermark: batch.highWatermark,
-              message: {
-                offset: message.offset,
-                // key: message.key!.toString(),
-                value: message.value!.toString(),
-                headers: message.headers,
-              },
-            });
+          const totalMessages = batch.messages.length;
+          for (let i = 0; i < totalMessages; i += this.batchSize) {
+            const subset = batch.messages.slice(i, i + this.batchSize);
+            const processingPromises = subset.map((message) =>
+              this.messageProcessor
+                .process({
+                  // topic: batch.topic,
+                  // partition: batch.partition,
+                  // highWatermark: batch.highWatermark,
+                  message: {
+                    // offset: message.offset,
+                    value: message.value!.toString(),
+                    // headers: message.headers,
+                  },
+                })
+                .then(() => {
+                  // Resolve offset after processing each message
+                  resolveOffset(message.offset);
+                })
+            );
 
-            //read about these
-            resolveOffset(message.offset);
+            // Wait for all messages to be processed
+            await Promise.all(processingPromises);
+
+            // Commit the offsets after all messages in the batch have been processed
+            await commitOffsetsIfNecessary();
             await heartbeat();
           }
         },

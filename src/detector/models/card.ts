@@ -8,6 +8,7 @@ interface CardAttrs {
   numOfTransactions: number;
   totalAmount: number;
   averageTransaction: number;
+  phone?: string;
   commonUsageTimes?: object;
 }
 
@@ -25,6 +26,7 @@ interface CardDoc extends mongoose.Document {
   numOfTransactions: number;
   totalAmount: number;
   averageTransaction: number;
+  phone: string;
   commonUsageTimes: object;
 }
 const CardSchema = new mongoose.Schema(
@@ -52,6 +54,9 @@ const CardSchema = new mongoose.Schema(
     averageTransaction: {
       type: Number,
       required: true,
+    },
+    phone: {
+      type: String,
     },
     commonUsageTimes: {
       type: Object,

@@ -7,7 +7,7 @@ const RECENT_TRANSACTIONS_INTERVAL_SECONDS = 120;
 // create a class for each rule and assign their consumers to the same group to ensure a message is processed only once. Make them work in parallel with async calls
 // cache relevant DB data
 // apply the lightweight rules first
-class RecentTransactionsProcessor extends BaseProcessor {
+export class RecentTransactionsProcessor extends BaseProcessor {
   private redis = RedisClient.getInstance();
 
   public async process(transaction: any) {

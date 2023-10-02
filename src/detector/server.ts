@@ -7,9 +7,9 @@ import { RedisClient } from './services/redisClient';
 
 const PORT = process.env.PORT;
 
-const cleanup = () => {
+const cleanup = async () => {
   const redisClient = RedisClient.getInstance();
-  redisClient.shutdown();
+  await redisClient.shutdown();
   console.log('Disconnected from Redis');
 };
 
@@ -22,7 +22,7 @@ const start = async () => {
       throw new Error('MONGO_URI must be defined');
     }
 
-    await mongoose.connect(process.env.MONGO_URI); //auth (after the last slash) is a DB created automatically by mongo
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('connected to MongoDB');
 
     app.listen(3000, () => {
@@ -33,19 +33,23 @@ const start = async () => {
   }
 };
 
-// process.on('exit', cleanup);
-process.on('SIGINT', () => {
-  cleanup();
+process.on('SIGINT', async () => {
+  await cleanup();
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
-  cleanup();
+process.on('SIGTERM', async () => {
+  await cleanup();
   process.exit(0);
 });
 
-process.on('exit', (code) => {
-  console.log(`Exiting with code: ${code}`);
-  cleanup();
+process.on('beforeExit', async (code) => {
+  console.log(`About to exit with code: ${code}`);
+  await cleanup();
 });
+
+// process.on('exit', (code) =>
+//   console.log(`Exiting with code: ${code}`);
+//   cleanup();
+// });
 start();

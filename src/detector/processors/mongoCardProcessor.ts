@@ -5,7 +5,7 @@ import { Card } from '../models/card';
 //think about indexing
 //replace the props in the this.extractValue() calls to TransactionType.prop
 //move calculatAverage and extractValue to a separate utilities.ts module (from all classes).
-class MongoCardProcessor extends BaseProcessor {
+export class MongoCardProcessor extends BaseProcessor {
   public async process(transaction: any): Promise<void> {
     await this.updateCardCollection(transaction);
   }

@@ -1,7 +1,7 @@
 import { BaseProcessor } from '../shared/baseProcessor';
 import { Transaction } from '../models/transaction';
 
-class MongoTransactionProcessor extends BaseProcessor {
+export class MongoTransactionProcessor extends BaseProcessor {
   public async process(transaction: any): Promise<void> {
     await this.insertTransaction(transaction);
   }

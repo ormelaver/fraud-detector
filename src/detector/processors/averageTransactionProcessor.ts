@@ -3,7 +3,7 @@ import { RedisClient } from '../services/redisClient';
 import { Card } from '../models/card';
 const AVERAGE_TRANSACTION_MULTIPLIER = 5;
 
-class AverageTransactionProcessor extends BaseProcessor {
+export class AverageTransactionProcessor extends BaseProcessor {
   private redisClient = RedisClient.getInstance();
   public async process(transaction: any) {
     try {

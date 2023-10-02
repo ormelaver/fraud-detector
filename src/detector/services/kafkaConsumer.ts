@@ -57,6 +57,7 @@ export class KafkaConsumer {
           pause,
         }) => {
           const totalMessages = batch.messages.length;
+          console.log(batch.messages[0].value?.toString());
           for (let i = 0; i < totalMessages; i += this.batchSize) {
             const subset = batch.messages.slice(i, i + this.batchSize);
             const processingPromises = subset.map((message) =>

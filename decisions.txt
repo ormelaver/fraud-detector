@@ -1,5 +1,7 @@
 TODD: 
 
+create processors with Factory design pattern - done
+create db connections with Factory
 
 Kafka producer as Singleton - to ensure only one connection and one producer per topic.
 -------------

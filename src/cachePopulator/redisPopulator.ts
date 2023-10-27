@@ -6,7 +6,7 @@ import { RedisClient } from '../detector/services/redisClient';
 import { Card } from '../detector/models/card';
 
 const redisClient = RedisClient.getInstance();
-const CARD_CACHE_INSERT_INTERVAL_MILLIS = 1800000; //30 minutes
+const CARD_CACHE_INSERT_INTERVAL_MILLIS = 30000; //30 minutes
 const populateRedis = async () => {
   const now = new Date();
   const hoursRaw = now.getHours();

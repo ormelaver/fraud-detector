@@ -1,5 +1,10 @@
 import { RedisClient } from '../services/redisClient';
 import { BaseProcessor } from '../shared/baseProcessor';
+import {
+  DatabaseConnectionFactory,
+  DatabaseType,
+} from '../shared/databaseConnectionFactory';
+
 const MAX_TRANSACTIONS_PER_INTERVAL = 2;
 const RECENT_TRANSACTIONS_INTERVAL_SECONDS = 120;
 
@@ -8,19 +13,22 @@ const RECENT_TRANSACTIONS_INTERVAL_SECONDS = 120;
 // cache relevant DB data
 // apply the lightweight rules first
 export class RecentTransactionsProcessor extends BaseProcessor {
-  private redis = RedisClient.getInstance();
+  // private redis = RedisClient.getInstance();
 
   public async process(transaction: any) {
-    await this.redis.connect();
+    const redisClient = (await DatabaseConnectionFactory.createConnection(
+      DatabaseType.REDIS
+    )) as RedisClient;
+    // await this.redis.connect();
     const cid = this.extractCid(transaction);
-    await this.checkRecentTransactions(cid);
-    await this.addTransactionToCache(cid, transaction);
+    await this.checkRecentTransactions(cid, redisClient);
+    await this.addTransactionToCache(cid, transaction, redisClient);
     console.log(`Finished processing: ${JSON.stringify(transaction)}`);
   }
 
-  private async checkRecentTransactions(cid: number) {
+  private async checkRecentTransactions(cid: number, redisClient: RedisClient) {
     try {
-      const recentTransactionsNumber = await this.redis.getValue(
+      const recentTransactionsNumber = await redisClient.getValue(
         `card:${cid}:counter`
       );
 
@@ -29,7 +37,7 @@ export class RecentTransactionsProcessor extends BaseProcessor {
         MAX_TRANSACTIONS_PER_INTERVAL
       ) {
         console.log(`Transaction for user ${cid} is FLAGGED`);
-        const recentTransactions = await this.redis.getList(
+        const recentTransactions = await redisClient.getList(
           `card:${cid}:transactions`,
           0,
           -1
@@ -52,13 +60,17 @@ export class RecentTransactionsProcessor extends BaseProcessor {
     }
   }
 
-  private async addTransactionToCache(cid: number, transaction: any) {
-    await this.redis.incrementCounter(`card:${cid}:counter`);
-    await this.redis.setExpiration(
+  private async addTransactionToCache(
+    cid: number,
+    transaction: any,
+    redisClient: RedisClient
+  ) {
+    await redisClient.incrementCounter(`card:${cid}:counter`);
+    await redisClient.setExpiration(
       `card:${cid}:counter`,
       RECENT_TRANSACTIONS_INTERVAL_SECONDS
     );
-    const reply = await this.redis.addListElement(
+    const reply = await redisClient.addListElement(
       `card:${cid}:transactions`,
       transaction,
       RECENT_TRANSACTIONS_INTERVAL_SECONDS

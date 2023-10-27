@@ -18,3 +18,9 @@ export enum Topics {
   TRANSACTIONS = 'transactions',
   ALERTS = 'alerts',
 }
+
+export abstract class DatabaseConnection {
+  abstract connect(): void;
+  abstract shutdown?(): void;
+  //   query(query: any): Promise<any>;
+}

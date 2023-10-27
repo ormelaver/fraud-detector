@@ -1,16 +1,22 @@
 import { BaseProcessor } from '../shared/baseProcessor';
 import { RedisClient } from '../services/redisClient';
 import { Card } from '../models/card';
+import {
+  DatabaseConnectionFactory,
+  DatabaseType,
+} from '../shared/databaseConnectionFactory';
 const AVERAGE_TRANSACTION_MULTIPLIER = 5;
 
 export class AverageTransactionProcessor extends BaseProcessor {
-  private redisClient = RedisClient.getInstance();
   public async process(transaction: any) {
     try {
-      await this.redisClient.connect();
+      const redisClient = (await DatabaseConnectionFactory.createConnection(
+        DatabaseType.REDIS
+      )) as RedisClient;
+
       const cardId = this.extractValue(transaction, 'cid');
       const currentAmount = this.extractValue(transaction, 'amount');
-      let average = await this.redisClient.getValue(
+      let average = await redisClient.getValue(
         `card:${cardId}:averageTransaction`
       );
 

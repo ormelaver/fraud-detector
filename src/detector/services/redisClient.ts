@@ -1,17 +1,18 @@
 import { createClient } from 'redis';
-
+import { DatabaseConnection } from '../types/kafka';
 // TODO: add error handler to reconnect if connection is lost
 // Use connection pool?
 
 // create an enum for possible keys
 
-export class RedisClient {
+export class RedisClient extends DatabaseConnection {
   private static instance: RedisClient;
   private _client: any;
   private isConnected = false;
   private reconnectAttempts = 2;
 
   private constructor() {
+    super();
     this._client = createClient();
 
     this._client.on('connect', () => {

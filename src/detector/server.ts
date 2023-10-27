@@ -1,9 +1,12 @@
 import 'dotenv/config';
-import mongoose from 'mongoose';
 
 import { app } from './app';
 import { initConsumers } from './consumers/initConsumers';
 import { RedisClient } from './services/redisClient';
+import {
+  DatabaseConnectionFactory,
+  DatabaseType,
+} from './shared/databaseConnectionFactory';
 
 const PORT = process.env.PORT;
 
@@ -22,10 +25,11 @@ const start = async () => {
       throw new Error('MONGO_URI must be defined');
     }
 
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('connected to MongoDB');
+    await DatabaseConnectionFactory.createConnection(DatabaseType.MONGO);
+    // await mongoose.connect(process.env.MONGO_URI);
+    // console.log('connected to MongoDB');
 
-    app.listen(3000, () => {
+    app.listen(PORT, () => {
       console.log('server listening on port ' + PORT);
     });
   } catch (error: any) {
